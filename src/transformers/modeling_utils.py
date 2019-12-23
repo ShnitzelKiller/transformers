@@ -723,9 +723,6 @@ class PreTrainedModel(nn.Module):
             outputs = self(**model_inputs)
             next_token_logits = outputs[0][:, -1, :]
             past = outputs[1] if past is None else [torch.cat([pa, pre], dim=-2) for pa, pre in zip(past, outputs[1])]
-            print("PAST",cur_len)
-            for p in past:
-                print(p.shape)
 
             # repetition penalty from CTRL paper (https://arxiv.org/abs/1909.05858)
             if repetition_penalty != 1.0:

@@ -140,12 +140,23 @@ class Attention(nn.Module):
         self.n_head = self.n_head - len(heads)
         self.pruned_heads = self.pruned_heads.union(heads)
 
+    def _attention_mask(self, nd, ns, *, dtype, device):
+        """1's in the lower triangle, counting from the lower right corner.
+
+        Same as tf.matrix_band_part(tf.ones([nd, ns]), -1, ns-nd), but doesn't produce garbage on TPUs.
+        """
+        i = torch.arange(nd, device=device).unsqueeze(-1)
+        j = torch.arange(ns, device=device)
+        m = i >= j - ns + nd
+        return m.type(dtype)
+
     def _attn(self, q, k, v, attention_mask=None, head_mask=None):
         w = torch.matmul(q, k)
         if self.scale:
             w = w / math.sqrt(v.size(-1))
         nd, ns = w.size(-2), w.size(-1)
-        b = self.bias[:, :, ns - nd : ns, :ns]
+        #b = self.bias[:, :, ns - nd : ns, :ns]
+        b = self._attention_mask(nd, ns, dtype=w.dtype, device=w.device)
         w = w * b - 1e4 * (1 - b)
 
         if attention_mask is not None:
