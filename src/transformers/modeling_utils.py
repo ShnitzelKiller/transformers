@@ -722,7 +722,7 @@ class PreTrainedModel(nn.Module):
             model_inputs = self.prepare_inputs_for_generation(input_ids, past=past)
             outputs = self(**model_inputs)
             next_token_logits = outputs[0][:, -1, :]
-            past = outputs[1] if past is None else [torch.cat([pa, pre], dim=-2) for pa, pre in zip(past, outputs[1])]
+            past = outputs[1]
 
             # repetition penalty from CTRL paper (https://arxiv.org/abs/1909.05858)
             if repetition_penalty != 1.0:
@@ -744,7 +744,10 @@ class PreTrainedModel(nn.Module):
 
             # update generations and finished sentences
             tokens_to_add = next_token * unfinished_sents + pad_token_id * (1 - unfinished_sents)
-            input_ids = torch.cat([input_ids, tokens_to_add.unsqueeze(-1)], dim=-1)
+            if past is None:
+                input_ids = torch.cat([input_ids, tokens_to_add.unsqueeze(-1)], dim=-1)
+            else:
+                input_ids = tokens_to_add.unsqueeze(-1)
             for eos_token_id in eos_token_ids:
                 unfinished_sents.mul_(tokens_to_add.ne(eos_token_id).long())
             cur_len = cur_len + 1
